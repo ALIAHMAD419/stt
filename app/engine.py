@@ -17,8 +17,11 @@ class Result:
 class WhisperEngine:
     def __init__(self):
         from faster_whisper import WhisperModel   # optional import; heavy
-        self.model = WhisperModel(config.WHISPER_MODEL, device=config.WHISPER_DEVICE,
-                                  compute_type=config.WHISPER_COMPUTE)
+        kw = dict(device=config.WHISPER_DEVICE, compute_type=config.WHISPER_COMPUTE)
+        try:   # cached model: no Hub round-trip (it can hang on flaky networks)
+            self.model = WhisperModel(config.WHISPER_MODEL, local_files_only=True, **kw)
+        except Exception:   # not cached yet -> download
+            self.model = WhisperModel(config.WHISPER_MODEL, **kw)
 
     def transcribe(self, wav, language=None) -> Result:
         # language=None -> Whisper auto-detects (multilingual models)
